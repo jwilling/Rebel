@@ -1,5 +1,5 @@
 //
-//  RBLClipView.m
+//  RBLClipView.h
 //  Rebel
 //
 //  Created by Justin Spahr-Summers on 2012-09-14.
