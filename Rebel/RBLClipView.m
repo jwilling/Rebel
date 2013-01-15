@@ -61,13 +61,13 @@ const CGFloat RBLClipViewDecelerationRate = 0.88;
 
 - (void)dealloc {
 	CVDisplayLinkRelease(_displayLink);
-	[[NSNotificationCenter defaultCenter] removeObserver:self];
+	[NSNotificationCenter.defaultCenter removeObserver:self];
 }
 
 
 #pragma mark Display link
 
-static CVReturn RBLScrollingCallback(CVDisplayLinkRef displayLink, const CVTimeStamp* now, const CVTimeStamp* outputTime, CVOptionFlags flagsIn, CVOptionFlags* flagsOut, void* displayLinkContext) {
+static CVReturn RBLScrollingCallback(CVDisplayLinkRef displayLink, const CVTimeStamp *now, const CVTimeStamp *outputTime, CVOptionFlags flagsIn, CVOptionFlags *flagsOut, void *displayLinkContext) {
 	__block CVReturn status;
 	@autoreleasepool {
 		RBLClipView *clipView = (__bridge id)displayLinkContext;
@@ -75,24 +75,26 @@ static CVReturn RBLScrollingCallback(CVDisplayLinkRef displayLink, const CVTimeS
 			status = [clipView updateOrigin];
 		});
 	}
-    return status;
+	
+	return status;
 }
 
 - (CVDisplayLinkRef)displayLink {
 	if (_displayLink == NULL) {
 		CVDisplayLinkCreateWithActiveCGDisplays(&_displayLink);
-		CVDisplayLinkSetOutputCallback(_displayLink, &RBLScrollingCallback, (__bridge void *)(self));
+		CVDisplayLinkSetOutputCallback(_displayLink, &RBLScrollingCallback, (__bridge void *)self);
 		[self updateCVDisplay];
 	}
+	
 	return _displayLink;
 }
 
 - (void)updateCVDisplay {
 	NSScreen *screen = self.window.screen;
-	if (screen) {
-		NSDictionary* screenDictionary = [[NSScreen mainScreen] deviceDescription];
-		NSNumber *screenID = [screenDictionary objectForKey:@"NSScreenNumber"];
-		CGDirectDisplayID displayID = [screenID unsignedIntValue];
+	if (screen == nil) {
+		NSDictionary *screenDictionary = [NSScreen.mainScreen deviceDescription];
+		NSNumber *screenID = screenDictionary[@"NSScreenNumber"];
+		CGDirectDisplayID displayID = screenID.unsignedIntValue;
 		CVDisplayLinkSetCurrentCGDisplay(_displayLink, displayID);
 	} else {
 		CVDisplayLinkSetCurrentCGDisplay(_displayLink, kCGDirectMainDisplay);
@@ -117,7 +119,7 @@ static CVReturn RBLScrollingCallback(CVDisplayLinkRef displayLink, const CVTimeS
 }
 
 - (void)beginScrolling {
-	if (self.isScrolling) {
+	if (self.scrolling) {
 		return;
 	}
 	
@@ -125,8 +127,9 @@ static CVReturn RBLScrollingCallback(CVDisplayLinkRef displayLink, const CVTimeS
 }
 
 - (void)endScrolling {
-	if (!self.isScrolling)
+	if (!self.scrolling) {
 		return;
+	}
 	
 	CVDisplayLinkStop(self.displayLink);
 	self.animate = NO;
@@ -137,7 +140,7 @@ static CVReturn RBLScrollingCallback(CVDisplayLinkRef displayLink, const CVTimeS
 }
 
 - (CVReturn)updateOrigin {
-	if(self.window == nil) {
+	if (self.window == nil) {
 		[self endScrolling];
 		return kCVReturnError;
 	}
@@ -147,12 +150,12 @@ static CVReturn RBLScrollingCallback(CVDisplayLinkRef displayLink, const CVTimeS
 	o.x = o.x * RBLClipViewDecelerationRate + self.destination.x * (1 - RBLClipViewDecelerationRate);
 	o.y = o.y * RBLClipViewDecelerationRate + self.destination.y * (1 - RBLClipViewDecelerationRate);
 	
-	[self setBoundsOrigin:o];
+	self.boundsOrigin = o;
 	
-	if((fabs(o.x - lastOrigin.x) < 0.1) && (fabs(o.y - lastOrigin.y) < 0.1)) {
+	if (fabs(o.x - lastOrigin.x) < 0.1 && fabs(o.y - lastOrigin.y) < 0.1) {
 		[self endScrolling];
-		[self setBoundsOrigin:self.destination];
-		[(NSScrollView *)self.superview flashScrollers];
+		self.boundsOrigin = self.destination;
+		[self.enclosingScrollView flashScrollers];
 	}
 	
 	return kCVReturnSuccess;
