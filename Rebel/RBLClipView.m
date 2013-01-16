@@ -16,6 +16,7 @@ static const CGFloat RBLClipViewDecelerationRate = 0.88;
 @interface RBLClipView ()
 // Used to drive the animation through repeated callbacks.
 // A display link is used instead of a timer so that we don't get dropped frames and tearing.
+// Lazily created when needed, released in dealloc. Stopped automatically when scrolling is not occurring.
 @property (nonatomic, assign) CVDisplayLinkRef displayLink;
 
 // Used to determine whether to animate in `scrollToPoint:`.
@@ -83,7 +84,7 @@ static const CGFloat RBLClipViewDecelerationRate = 0.88;
 	[super viewWillMoveToWindow:newWindow];
 	
 	if (newWindow != nil) {
-		[NSNotificationCenter.defaultCenter addObserver:self selector:@selector(updateCVDisplay) name:NSWindowDidChangeScreenNotification object:newWindow];
+		[NSNotificationCenter.defaultCenter addObserver:self selector:@selector(updateCVDisplay:) name:NSWindowDidChangeScreenNotification object:newWindow];
 	}
 }
 
@@ -104,13 +105,13 @@ static CVReturn RBLScrollingCallback(CVDisplayLinkRef displayLink, const CVTimeS
 	if (_displayLink == NULL) {
 		CVDisplayLinkCreateWithActiveCGDisplays(&_displayLink);
 		CVDisplayLinkSetOutputCallback(_displayLink, &RBLScrollingCallback, (__bridge void *)self);
-		[self updateCVDisplay];
+		[self updateCVDisplay:nil];
 	}
 	
 	return _displayLink;
 }
 
-- (void)updateCVDisplay {
+- (void)updateCVDisplay:(NSNotification *)note {
 	NSScreen *screen = self.window.screen;
 	if (screen == nil) {
 		NSDictionary *screenDictionary = NSScreen.mainScreen.deviceDescription;
