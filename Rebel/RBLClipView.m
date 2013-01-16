@@ -64,6 +64,21 @@ const CGFloat RBLClipViewDecelerationRate = 0.88;
 	[NSNotificationCenter.defaultCenter removeObserver:self];
 }
 
+#pragma mark View Heirarchy
+
+- (void)viewWillMoveToWindow:(NSWindow *)newWindow {
+	if (self.window != nil) {
+		[NSNotificationCenter.defaultCenter removeObserver:self name:NSWindowDidChangeScreenNotification object:self.window];
+	}
+	
+	[super viewWillMoveToWindow:newWindow];
+	
+	if (newWindow != nil) {
+		[NSNotificationCenter.defaultCenter addObserverForName:NSWindowDidChangeScreenNotification object:newWindow queue:nil usingBlock:^(NSNotification *note) {
+			[self updateCVDisplay];
+		}];
+	}
+}
 
 #pragma mark Display link
 
