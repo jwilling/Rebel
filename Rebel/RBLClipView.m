@@ -10,13 +10,22 @@
 #import "RBLClipView.h"
 #import "NSColor+RBLCGColorAdditions.h"
 
-const CGFloat RBLClipViewDecelerationRate = 0.88;
+// The deceleration constant used for the ease-out curve in the animation.
+static const CGFloat RBLClipViewDecelerationRate = 0.88;
 
-@interface RBLClipView()
+@interface RBLClipView ()
+// Used to drive the animation through repeated callbacks.
+// A display link is used instead of a timer so that we don't get dropped frames and tearing.
 @property (nonatomic, assign) CVDisplayLinkRef displayLink;
+
+// Used to determine whether to animate in `scrollToPoint:`.
 @property (nonatomic, assign) BOOL shouldAnimateOriginChange;
+
+// Used when animating with the display link as the final origin for the animation.
 @property (nonatomic, assign) CGPoint destinationOrigin;
-@property (nonatomic, readonly, getter = isScrolling) BOOL scrolling;
+
+// Return value is whether the display link is currently animating a scroll.
+@property (nonatomic, readonly) BOOL animatingScroll;
 @end
 
 @implementation RBLClipView
@@ -146,7 +155,7 @@ static CVReturn RBLScrollingCallback(CVDisplayLinkRef displayLink, const CVTimeS
 }
 
 - (void)beginScrolling {
-	if (self.scrolling) {
+	if (self.animatingScroll) {
 		return;
 	}
 	
@@ -154,7 +163,7 @@ static CVReturn RBLScrollingCallback(CVDisplayLinkRef displayLink, const CVTimeS
 }
 
 - (void)endScrolling {
-	if (!self.scrolling) {
+	if (!self.animatingScroll) {
 		return;
 	}
 	
@@ -162,7 +171,7 @@ static CVReturn RBLScrollingCallback(CVDisplayLinkRef displayLink, const CVTimeS
 	self.shouldAnimateOriginChange = NO;
 }
 
-- (BOOL)isScrolling {
+- (BOOL)animatingScroll {
 	return CVDisplayLinkIsRunning(self.displayLink);
 }
 
