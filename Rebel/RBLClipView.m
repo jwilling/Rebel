@@ -83,24 +83,21 @@ static const CGFloat RBLClipViewDecelerationRate = 0.88;
 	[super viewWillMoveToWindow:newWindow];
 	
 	if (newWindow != nil) {
-		[NSNotificationCenter.defaultCenter addObserverForName:NSWindowDidChangeScreenNotification object:newWindow queue:nil usingBlock:^(NSNotification *note) {
-			[self updateCVDisplay];
-		}];
+		[NSNotificationCenter.defaultCenter addObserver:self selector:@selector(updateCVDisplay) name:NSWindowDidChangeScreenNotification object:newWindow];
 	}
 }
 
 #pragma mark Display link
 
 static CVReturn RBLScrollingCallback(CVDisplayLinkRef displayLink, const CVTimeStamp *now, const CVTimeStamp *outputTime, CVOptionFlags flagsIn, CVOptionFlags *flagsOut, void *displayLinkContext) {
-	__block CVReturn status;
 	@autoreleasepool {
 		RBLClipView *clipView = (__bridge id)displayLinkContext;
 		dispatch_async(dispatch_get_main_queue(), ^{
-			status = [clipView updateOrigin];
+			[clipView updateOrigin];
 		});
 	}
 	
-	return status;
+	return kCVReturnSuccess;
 }
 
 - (CVDisplayLinkRef)displayLink {
@@ -116,7 +113,7 @@ static CVReturn RBLScrollingCallback(CVDisplayLinkRef displayLink, const CVTimeS
 - (void)updateCVDisplay {
 	NSScreen *screen = self.window.screen;
 	if (screen == nil) {
-		NSDictionary *screenDictionary = [NSScreen.mainScreen deviceDescription];
+		NSDictionary *screenDictionary = NSScreen.mainScreen.deviceDescription;
 		NSNumber *screenID = screenDictionary[@"NSScreenNumber"];
 		CGDirectDisplayID displayID = screenID.unsignedIntValue;
 		CVDisplayLinkSetCurrentCGDisplay(_displayLink, displayID);
@@ -137,7 +134,6 @@ static CVReturn RBLScrollingCallback(CVDisplayLinkRef displayLink, const CVTimeS
 	} else if (type == NSKeyDown || type == NSKeyUp || type == NSFlagsChanged) {
 		// Occurs if a keyboard press has triggered a origin change. In this case we
 		// want to explicitly enable and begin the animation.
-		self.shouldAnimateOriginChange = YES;
 		self.destinationOrigin = newOrigin;
 		[self beginScrolling];
 	} else {
@@ -175,10 +171,10 @@ static CVReturn RBLScrollingCallback(CVDisplayLinkRef displayLink, const CVTimeS
 	return CVDisplayLinkIsRunning(self.displayLink);
 }
 
-- (CVReturn)updateOrigin {
+- (void)updateOrigin {
 	if (self.window == nil) {
 		[self endScrolling];
-		return kCVReturnError;
+		return;
 	}
 	
 	CGPoint o = self.bounds.origin;
@@ -195,8 +191,6 @@ static CVReturn RBLScrollingCallback(CVDisplayLinkRef displayLink, const CVTimeS
 		self.boundsOrigin = self.destinationOrigin;
 		[self.enclosingScrollView flashScrollers];
 	}
-	
-	return kCVReturnSuccess;
 }
 
 @end
