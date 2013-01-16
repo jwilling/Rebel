@@ -13,9 +13,9 @@
 const CGFloat RBLClipViewDecelerationRate = 0.88;
 
 @interface RBLClipView()
-@property (nonatomic) CVDisplayLinkRef displayLink;
-@property (nonatomic) BOOL animate;
-@property (nonatomic) CGPoint destination;
+@property (nonatomic, assign) CVDisplayLinkRef displayLink;
+@property (nonatomic, assign) BOOL shouldAnimateOriginChange;
+@property (nonatomic, assign) CGPoint destinationOrigin;
 @property (nonatomic, readonly, getter = isScrolling) BOOL scrolling;
 @end
 
@@ -46,12 +46,12 @@ const CGFloat RBLClipViewDecelerationRate = 0.88;
 - (id)initWithFrame:(NSRect)frame {
 	self = [super initWithFrame:frame];
 	if (self == nil) return nil;
-
+	
 	self.layer = [CAScrollLayer layer];
 	self.wantsLayer = YES;
-
+	
 	self.layerContentsRedrawPolicy = NSViewLayerContentsRedrawNever;
-
+	
 	// Matches default NSClipView settings.
 	self.backgroundColor = NSColor.clearColor;
 	self.opaque = NO;
@@ -119,17 +119,29 @@ static CVReturn RBLScrollingCallback(CVDisplayLinkRef displayLink, const CVTimeS
 #pragma mark Scrolling
 
 - (void)scrollToPoint:(NSPoint)newOrigin {
-	if (self.animate && (self.window.currentEvent.type != NSScrollWheel)) {
-		self.destination = newOrigin;
+	NSEventType type = self.window.currentEvent.type;
+	
+	if (self.shouldAnimateOriginChange && type != NSScrollWheel) {
+		// Occurs when `-scrollRectToVisible:animated:` has been called with an animated flag.
+		self.destinationOrigin = newOrigin;
+		[self beginScrolling];
+	} else if (type == NSKeyDown || type == NSKeyUp || type == NSFlagsChanged) {
+		// Occurs if a keyboard press has triggered a origin change. In this case we
+		// want to explicitly enable and begin the animation.
+		self.shouldAnimateOriginChange = YES;
+		self.destinationOrigin = newOrigin;
 		[self beginScrolling];
 	} else {
+		// For all other cases, we do not animate. We call `endScrolling` in case a previous animation
+		// is still in progress, in which case we want to stop the display link from making further
+		// callbacks, which would interfere with normal scrolling.
 		[self endScrolling];
 		[super scrollToPoint:newOrigin];
 	}
 }
 
 - (BOOL)scrollRectToVisible:(NSRect)aRect animated:(BOOL)animated {
-	self.animate = animated;
+	self.shouldAnimateOriginChange = animated;
 	return [super scrollRectToVisible:aRect];
 }
 
@@ -147,7 +159,7 @@ static CVReturn RBLScrollingCallback(CVDisplayLinkRef displayLink, const CVTimeS
 	}
 	
 	CVDisplayLinkStop(self.displayLink);
-	self.animate = NO;
+	self.shouldAnimateOriginChange = NO;
 }
 
 - (BOOL)isScrolling {
@@ -162,14 +174,16 @@ static CVReturn RBLScrollingCallback(CVDisplayLinkRef displayLink, const CVTimeS
 	
 	CGPoint o = self.bounds.origin;
 	CGPoint lastOrigin = o;
-	o.x = o.x * RBLClipViewDecelerationRate + self.destination.x * (1 - RBLClipViewDecelerationRate);
-	o.y = o.y * RBLClipViewDecelerationRate + self.destination.y * (1 - RBLClipViewDecelerationRate);
+	
+	// Calculate the next origin on a basic ease-out curve.
+	o.x = o.x * RBLClipViewDecelerationRate + self.destinationOrigin.x * (1 - RBLClipViewDecelerationRate);
+	o.y = o.y * RBLClipViewDecelerationRate + self.destinationOrigin.y * (1 - RBLClipViewDecelerationRate);
 	
 	self.boundsOrigin = o;
 	
 	if (fabs(o.x - lastOrigin.x) < 0.1 && fabs(o.y - lastOrigin.y) < 0.1) {
 		[self endScrolling];
-		self.boundsOrigin = self.destination;
+		self.boundsOrigin = self.destinationOrigin;
 		[self.enclosingScrollView flashScrollers];
 	}
 	
