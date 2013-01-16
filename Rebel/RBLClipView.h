@@ -9,13 +9,20 @@
 
 #import <QuartzCore/QuartzCore.h>
 
-// A faster NSClipView based on CAScrollLayer. Scrolling not of a touch device
-// will automatically have a deceleration applied to it.
+// A faster NSClipView based on CAScrollLayer.
 //
 // This view should be set as the scroll view's contentView as soon as possible
 // after the scroll view is initialized. For some reason, scroll bars will
 // disappear on 10.7 (but not 10.8) unless hasHorizontalScroller and
 // hasVerticalScroller are set _after_ the contentView.
+//
+// RBLClipView performs an ease-out animation with any changes to the origin
+// of the clip view when it originates from a keyboard event. It will also animate with the same
+// deceleration if -scrollRectToVisible:animated: is called with `animation` set to YES.
+// Any other events causing a bounds change will not be animated.
+//
+// An example of when this would fire by default is a key press that triggers an offscreen
+// cell to come into view in a NSTableView.
 @interface RBLClipView : NSClipView
 
 // The backing layer for this view.
