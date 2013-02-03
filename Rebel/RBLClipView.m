@@ -146,6 +146,12 @@ static CVReturn RBLScrollingCallback(CVDisplayLinkRef displayLink, const CVTimeS
 	}
 }
 
+- (void)setDestinationOrigin:(CGPoint)origin {
+	// We want to round up to the nearest integral point, since some classes
+	// seem to provide non-integral point values.
+	_destinationOrigin = (CGPoint){ .x = round(origin.x), .y = round(origin.y) };
+}
+
 - (BOOL)scrollRectToVisible:(NSRect)aRect animated:(BOOL)animated {
 	self.shouldAnimateOriginChange = animated;
 	return [super scrollRectToVisible:aRect];
