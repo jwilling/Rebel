@@ -42,7 +42,7 @@
 // Values should range from [0, 1]. Smaller deceleration rates will provide
 // generally fast animations, whereas larger rates will create lengthy animations.
 //
-//Defaults to 0.78.
+// Defaults to 0.78.
 @property (nonatomic, assign) CGFloat decelerationRate;
 
 @end
