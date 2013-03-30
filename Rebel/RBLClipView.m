@@ -12,6 +12,7 @@
 
 // The deceleration constant used for the ease-out curve in the animation.
 static const CGFloat RBLClipViewDecelerationRate = 0.88;
+static const CGFloat RBLClipViewDecelerationRate = 0.78;
 
 @interface RBLClipView ()
 // Used to drive the animation through repeated callbacks.
