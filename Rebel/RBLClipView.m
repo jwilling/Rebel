@@ -57,9 +57,7 @@ static const CGFloat RBLClipViewDecelerationRate = 0.78;
 	self = [super initWithFrame:frame];
 	if (self == nil) return nil;
 	
-	self.layer = [CAScrollLayer layer];
 	self.wantsLayer = YES;
-	
 	self.layerContentsRedrawPolicy = NSViewLayerContentsRedrawNever;
 	
 	// Matches default NSClipView settings.

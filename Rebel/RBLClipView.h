@@ -9,7 +9,7 @@
 
 #import <QuartzCore/QuartzCore.h>
 
-// A faster NSClipView based on CAScrollLayer.
+// A NSClipView subclass with better animations.
 //
 // This view should be set as the scroll view's contentView as soon as possible
 // after the scroll view is initialized. For some reason, scroll bars will
