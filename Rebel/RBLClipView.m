@@ -11,7 +11,6 @@
 #import "NSColor+RBLCGColorAdditions.h"
 
 // The deceleration constant used for the ease-out curve in the animation.
-static const CGFloat RBLClipViewDecelerationRate = 0.88;
 static const CGFloat RBLClipViewDecelerationRate = 0.78;
 
 @interface RBLClipView ()
@@ -66,6 +65,8 @@ static const CGFloat RBLClipViewDecelerationRate = 0.78;
 	// Matches default NSClipView settings.
 	self.backgroundColor = NSColor.clearColor;
 	self.opaque = NO;
+	
+	self.decelerationRate = RBLClipViewDecelerationRate;
 	
 	return self;
 }
@@ -179,6 +180,15 @@ static CVReturn RBLScrollingCallback(CVDisplayLinkRef displayLink, const CVTimeS
 	return CVDisplayLinkIsRunning(self.displayLink);
 }
 
+// Sanitize the deceleration rate to [0, 1] so nothing unexpected happens.
+- (void)setDecelerationRate:(CGFloat)decelerationRate {
+	if (decelerationRate > 1)
+		decelerationRate = 1;
+	else if (decelerationRate < 0)
+		decelerationRate = 0;
+	_decelerationRate = decelerationRate;
+}
+
 - (void)updateOrigin {
 	if (self.window == nil) {
 		[self endScrolling];
@@ -189,8 +199,8 @@ static CVReturn RBLScrollingCallback(CVDisplayLinkRef displayLink, const CVTimeS
 	CGPoint lastOrigin = o;
 	
 	// Calculate the next origin on a basic ease-out curve.
-	o.x = o.x * RBLClipViewDecelerationRate + self.destinationOrigin.x * (1 - RBLClipViewDecelerationRate);
-	o.y = o.y * RBLClipViewDecelerationRate + self.destinationOrigin.y * (1 - RBLClipViewDecelerationRate);
+	o.x = o.x * self.decelerationRate + self.destinationOrigin.x * (1 - self.decelerationRate);
+	o.y = o.y * self.decelerationRate + self.destinationOrigin.y * (1 - self.decelerationRate);
 	
 	self.boundsOrigin = o;
 	
